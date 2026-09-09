@@ -1,0 +1,9 @@
+qemu-system-i386 bootsplash.img
+
+What problem do you encounter?
+
+It gives a boot failed: not bootable disk error
+It checks floppy, cd, rom, and none show up
+
+When I run ./sign.pl bootsplash.img, it outputs boot block is 95 bytes (max 510)
+
