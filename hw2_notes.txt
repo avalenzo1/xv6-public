@@ -7,3 +7,20 @@ It checks floppy, cd, rom, and none show up
 
 When I run ./sign.pl bootsplash.img, it outputs boot block is 95 bytes (max 510)
 
+x86 intel uses little endian so lsb is first on an address
+
+for example
+
+0x1234
+
+0x0000 = 0x34
+0x0001 = 0x12
+
+So 0xaa55 is going to show up in reverse in a linear address
+
+Useful commands:
+
+gdb
+target remote localhost:1234
+b *0x7c00
+file /Users/avale/Desktop/cs461/xv6-fork/bootsplashlinked.o
