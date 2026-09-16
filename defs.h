@@ -26,6 +26,7 @@ void            bwrite(struct buf*);
 void            consoleinit(void);
 void            cprintf(char*, ...);
 void            consoleintr(int(*)(void));
+int             consoleioctl(struct file *,int,int);
 void            panic(char*) __attribute__((noreturn));
 
 // exec.c
@@ -34,6 +35,7 @@ int             exec(char*, char**);
 // file.c
 struct file*    filealloc(void);
 void            fileclose(struct file*);
+int             fileioctl(struct file*, int, int);
 struct file*    filedup(struct file*);
 void            fileinit(void);
 int             fileread(struct file*, char*, int n);
@@ -151,9 +153,9 @@ char*           strncpy(char*, const char*, int);
 void            syscall(struct trapframe *);
 void            syscallinit(void);
 int             argint(int, int*);
-int             argptr(int, char**, int);
+addr_t          argptr(int, char**, int);
 int             argstr(int, char**);
-int             argaddr(int, addr_t*);
+addr_t          argaddr(int, addr_t*);
 int             fetchaddr(addr_t, addr_t*);
 int             fetchstr(addr_t, char**);
 int             fetchint(addr_t, int*);

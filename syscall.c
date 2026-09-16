@@ -65,7 +65,7 @@ argint(int n, int *ip)
   return 0;
 }
 
-int
+addr_t
 argaddr(int n, addr_t *ip)
 {
   *ip = fetcharg(n);
@@ -75,14 +75,14 @@ argaddr(int n, addr_t *ip)
 // Fetch the nth word-sized system call argument as a pointer
 // to a block of memory of size bytes.  Check that the pointer
 // lies within the process address space.
-int
+addr_t
 argptr(int n, char **pp, int size)
 {
   addr_t i;
 
   if(argaddr(n, &i) < 0)
     return -1;
-  if(size < 0 || i >= proc->sz || i+size > proc->sz)
+  if(size < 0 || (uint)i >= proc->sz || (uint)i+size > proc->sz)
     return -1;
   *pp = (char*)i;
   return 0;
@@ -95,11 +95,12 @@ argptr(int n, char **pp, int size)
 int
 argstr(int n, char **pp)
 {
-  addr_t addr;
-  if(argaddr(n, &addr) < 0)
+  int addr;
+  if(argint(n, &addr) < 0)
     return -1;
   return fetchstr(addr, pp);
 }
+
 
 extern addr_t sys_chdir(void);
 extern addr_t sys_close(void);
@@ -122,9 +123,11 @@ extern addr_t sys_unlink(void);
 extern addr_t sys_wait(void);
 extern addr_t sys_write(void);
 extern addr_t sys_uptime(void);
+extern addr_t sys_ioctl(void);
 
 // PAGEBREAK!
 static addr_t (*syscalls[])(void) = {
+
 [SYS_fork]    sys_fork,
 [SYS_exit]    sys_exit,
 [SYS_wait]    sys_wait,
@@ -146,11 +149,14 @@ static addr_t (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
+[SYS_ioctl]   sys_ioctl,
 };
 
 void
 syscall(struct trapframe *tf)
 {
+  if (proc->killed)
+    exit();
   proc->tf = tf;
   uint64 num = proc->tf->rax;
   if (num > 0 && num < NELEM(syscalls) && syscalls[num]) {

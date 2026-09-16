@@ -33,10 +33,7 @@ CFLAGS = -fno-pic -static -fno-builtin -fno-strict-aliasing -Wall -MD -ggdb -fno
 CFLAGS += -ffreestanding -fno-common -nostdlib $(XFLAGS) $(OPT)
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 
-ASFLAGS = -gdwarf-2 -Wa,-divide -Iinclude $(XFLAGS)
-
-# FreeBSD ld wants ``elf_i386_fbsd''
-#LDFLAGS += -m $(shell $(LD) -V | grep elf_i386 2>/dev/null | head -n 1)
+ASFLAGS = -gdwarf-2 -Wa,-divide $(XFLAGS)
 LDFLAGS = -m elf_x86_64 -nostdlib
 
 
@@ -121,11 +118,11 @@ mkfs: mkfs.c fs.h
 
 UPROGS= \
 	_cat _echo _forktest _grep _init _kill _ln _ls _mkdir \
-	_rm _sh _stressfs _usertests _wc _zombie \
+	_rm _sh _stressfs _usertests _wc _zombie _prettyprint _imshow\
 #
 
-fs.img: mkfs README $(UPROGS)
-	./mkfs fs.img README $(UPROGS)
+fs.img: mkfs README cover.raw $(UPROGS)
+	./mkfs fs.img README cover.raw $(UPROGS)
 
 clean:
 	rm -f *.tex *.dvi *.idx *.aux *.log *.ind *.ilg \
@@ -221,19 +218,5 @@ tar:
 	mkdir -p /tmp/xv6
 	cp dist/* dist/.gdbinit.tmpl /tmp/xv6
 	(cd /tmp; tar cf - xv6) | gzip >xv6-rev10.tar.gz  # the next one will be 10 (9/17)
-
-bootskel.img: bootskel.S
-	$(AS) bootskel.S -o bootskel.o
-	$(LD) -Ttext=0x7c00 -e start bootskel.o -o bootskellinked.o
-	$(OBJCOPY) -O binary bootskellinked.o bootskel.img
-
-bootsplash.img: bootsplash.S splashmain.c
-	$(CC) -E bootsplash.S -o bootsplash.pre
-	$(AS) --32 bootsplash.pre -o bootsplash.o
-	$(CC) -m32 -fno-builtin -fno-asynchronous-unwind-tables -fno-unwind-tables -c splashmain.c -o splashmain.o
-	$(LD) -m elf_i386 -Ttext=0x7c00 -e start bootsplash.o splashmain.o -o bootsplashlinked.o
-	$(OBJCOPY) -O binary bootsplashlinked.o bootsplash.img
-	./sign.pl bootsplash.img   
-	dd if=cover.raw of=bootsplash.img seek=512
 
 .PHONY: dist-test dist clean

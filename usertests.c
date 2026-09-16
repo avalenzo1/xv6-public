@@ -282,7 +282,7 @@ exectest(void)
 }
 
 void
-nullptrtest(void)
+nullpointer(void)
 {
   printf(1, "null pointer test\n");
   printf(1, "expect one killed process\n");
@@ -1648,7 +1648,7 @@ main(int argc, char *argv[])
   pipe1();
   preempt();
   exitwait();
-  nullptrtest();
+  nullpointer();
 
   rmdot();
   fourteen();
