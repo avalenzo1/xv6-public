@@ -1,0 +1,6 @@
+user space
+1. printf -> putc -> write (syscall)
+user space -> kernel space
+2. -> syscall_entry
+kernel space
+3. -> syscall -> gets rax (the system call number) -> syswrite -> filewrite -> consolewrite -> consputc -> cgaputc

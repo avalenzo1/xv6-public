@@ -24,6 +24,8 @@ mkgate(uint *idt, uint n, addr_t kva, uint pl)
   idt[n+1] = (addr & 0xFFFF0000) | 0x8E00 | ((pl & 3) << 13);
   idt[n+2] = addr >> 32;
   idt[n+3] = 0;
+
+  // Heres the address we should jump to for some interrupt?
 }
 
 void idtinit(void)
@@ -53,7 +55,7 @@ trap(struct trapframe *tf)
       wakeup(&ticks);
       release(&tickslock);
     }
-    lapiceoi();
+    lapiceoi(); 
     break;
   case T_IRQ0 + IRQ_IDE:
     ideintr();
@@ -64,7 +66,7 @@ trap(struct trapframe *tf)
     break;
   case T_IRQ0 + IRQ_KBD:
     kbdintr();
-    lapiceoi();
+    lapiceoi(); // la peace
     break;
   case T_IRQ0 + IRQ_COM1:
     uartintr();

@@ -17,18 +17,22 @@
 #include "proc.h"
 #include "x86.h"
 
+static int ioctl_mode = 0;
+static int global_value = 0x07;
+
 static void consputc(int);
 
 static int panicked = 0;
 
-static struct {
+static struct
+{
   struct spinlock lock;
   int locking;
 } cons;
 
 static char digits[] = "0123456789abcdef";
 
-  static void
+static void
 print_x64(addr_t x)
 {
   int i;
@@ -36,7 +40,7 @@ print_x64(addr_t x)
     consputc(digits[x >> (sizeof(addr_t) * 8 - 4)]);
 }
 
-  static void
+static void
 print_x32(uint x)
 {
   int i;
@@ -44,7 +48,7 @@ print_x32(uint x)
     consputc(digits[x >> (sizeof(uint) * 8 - 4)]);
 }
 
-  static void
+static void
 print_d(int v)
 {
   char buf[16];
@@ -54,10 +58,11 @@ print_d(int v)
     x = -x;
 
   int i = 0;
-  do {
+  do
+  {
     buf[i++] = digits[x % 10];
     x /= 10;
-  } while(x != 0);
+  } while (x != 0);
 
   if (v < 0)
     buf[i++] = '-';
@@ -65,11 +70,10 @@ print_d(int v)
   while (--i >= 0)
     consputc(buf[i]);
 }
-//PAGEBREAK: 50
+// PAGEBREAK: 50
 
 // Print to the console. only understands %d, %x, %p, %s.
-  void
-cprintf(char *fmt, ...)
+void cprintf(char *fmt, ...)
 {
   va_list ap;
   int i, c, locking;
@@ -84,15 +88,18 @@ cprintf(char *fmt, ...)
   if (fmt == 0)
     panic("null fmt");
 
-  for (i = 0; (c = fmt[i] & 0xff) != 0; i++) {
-    if (c != '%') {
+  for (i = 0; (c = fmt[i] & 0xff) != 0; i++)
+  {
+    if (c != '%')
+    {
       consputc(c);
       continue;
     }
     c = fmt[++i] & 0xff;
     if (c == 0)
       break;
-    switch(c) {
+    switch (c)
+    {
     case 'd':
       print_d(va_arg(ap, int));
       break;
@@ -103,7 +110,7 @@ cprintf(char *fmt, ...)
       print_x64(va_arg(ap, addr_t));
       break;
     case 's':
-      if ((s = va_arg(ap, char*)) == 0)
+      if ((s = va_arg(ap, char *)) == 0)
         s = "(null)";
       while (*s)
         consputc(*(s++));
@@ -123,8 +130,7 @@ cprintf(char *fmt, ...)
     release(&cons.lock);
 }
 
-__attribute__((noreturn))
-  void
+__attribute__((noreturn)) void
 panic(char *s)
 {
   int i;
@@ -136,109 +142,144 @@ panic(char *s)
   cprintf(s);
   cprintf("\n");
   getcallerpcs(&s, pcs);
-  for (i=0; i<10; i++)
+  for (i = 0; i < 10; i++)
     cprintf(" %p\n", pcs[i]);
   panicked = 1; // freeze other CPU
   for (;;)
     hlt();
 }
 
-//PAGEBREAK: 50
+// PAGEBREAK: 50
 #define BACKSPACE 0x100
 #define CRTPORT 0x3d4
-static ushort *crt = (ushort*)P2V(0xb8000);  // CGA memory
+static ushort *crt = (ushort *)P2V(0xb8000); // CGA memory
 
-  static void
-cgaputc(int c)
+static void
+cgaputc(int c, int textcolor)
 {
   int pos;
 
   // Cursor position: col + 80*row.
   outb(CRTPORT, 14);
-  pos = inb(CRTPORT+1) << 8;
+  pos = inb(CRTPORT + 1) << 8;
   outb(CRTPORT, 15);
-  pos |= inb(CRTPORT+1);
+  pos |= inb(CRTPORT + 1);
 
   if (c == '\n')
-    pos += 80 - pos%80;
-  else if (c == BACKSPACE) {
-    if (pos > 0) --pos;
-  } else
-    crt[pos++] = (c&0xff) | 0x0700;  // gray on black
+    pos += 80 - pos % 80;
+  else if (c == BACKSPACE)
+  {
+    if (pos > 0)
+      --pos;
+  }
+  else
+    crt[pos++] = (c & 0xff) | (textcolor << 0x8); // gray on black
 
-  if ((pos/80) >= 24){  // Scroll up.
-    memmove(crt, crt+80, sizeof(crt[0])*23*80);
+  if ((pos / 80) >= 24)
+  { // Scroll up.
+    memmove(crt, crt + 80, sizeof(crt[0]) * 23 * 80);
     pos -= 80;
-    memset(crt+pos, 0, sizeof(crt[0])*(24*80 - pos));
+    memset(crt + pos, 0, sizeof(crt[0]) * (24 * 80 - pos));
   }
 
   outb(CRTPORT, 14);
-  outb(CRTPORT+1, pos>>8);
+  outb(CRTPORT + 1, pos >> 8);
   outb(CRTPORT, 15);
-  outb(CRTPORT+1, pos);
-  crt[pos] = ' ' | 0x0700;
+  outb(CRTPORT + 1, pos);
+  crt[pos] = ' ' | (textcolor << 0x8);
 }
 
-  void
-consputc(int c)
+void consputc(int c)
 {
-  if (panicked) {
+  if (panicked)
+  {
     cli();
-    for(;;)
+    for (;;)
       hlt();
   }
 
-  if (c == BACKSPACE) {
-    uartputc('\b'); uartputc(' '); uartputc('\b');
-  } else
+  if (c == BACKSPACE)
+  {
+    uartputc('\b');
+    uartputc(' ');
+    uartputc('\b');
+  }
+  else
     uartputc(c);
-  cgaputc(c);
+  cgaputc(c, global_value);
+}
+
+void consputc_local(int c, int textcolor)
+{
+  if (panicked)
+  {
+    cli();
+    for (;;)
+      hlt();
+  }
+
+  if (c == BACKSPACE)
+  {
+    uartputc('\b');
+    uartputc(' ');
+    uartputc('\b');
+  }
+  else
+    uartputc(c);
+  cgaputc(c, textcolor);
 }
 
 #define INPUT_BUF 128
-struct {
+struct
+{
   struct spinlock lock;
   char buf[INPUT_BUF];
-  uint r;  // Read index
-  uint w;  // Write index
-  uint e;  // Edit index
+  uint r; // Read index
+  uint w; // Write index
+  uint e; // Edit index
 } input;
 
-#define C(x)  ((x)-'@')  // Control-x
+#define C(x) ((x) - '@') // Control-x
 
-  void
-consoleintr(int (*getc)(void))
+void consoleintr(int (*getc)(void))
 {
   int c;
 
   acquire(&input.lock);
-  while((c = getc()) >= 0){
-    switch(c){
+  while ((c = getc()) >= 0)
+  {
+    switch (c)
+    {
     case C('Z'): // reboot
-      lidt(0,0);
+      lidt(0, 0);
       break;
-    case C('P'):  // Process listing.
+    case C('P'): // Process listing.
       procdump();
       break;
-    case C('U'):  // Kill line.
-      while(input.e != input.w &&
-          input.buf[(input.e-1) % INPUT_BUF] != '\n'){
+    case C('U'): // Kill line.
+      while (input.e != input.w &&
+             input.buf[(input.e - 1) % INPUT_BUF] != '\n')
+      {
         input.e--;
         consputc(BACKSPACE);
       }
       break;
-    case C('H'): case '\x7f':  // Backspace
-      if (input.e != input.w) {
+    case C('H'):
+    case '\x7f': // Backspace
+      if (input.e != input.w)
+      {
         input.e--;
         consputc(BACKSPACE);
       }
       break;
     default:
-      if (c != 0 && input.e-input.r < INPUT_BUF) {
+      if (c != 0 && input.e - input.r < INPUT_BUF)
+      {
         c = (c == '\r') ? '\n' : c;
         input.buf[input.e++ % INPUT_BUF] = c;
         consputc(c);
-        if (c == '\n' || c == C('D') || input.e == input.r+INPUT_BUF) {
+        if (c == '\n' || c == C('D') || input.e == input.r + INPUT_BUF)
+        {
           input.w = input.e;
           wakeup(&input.r);
         }
@@ -249,17 +290,19 @@ consoleintr(int (*getc)(void))
   release(&input.lock);
 }
 
-int
-consoleread(struct file *f, char *dst, int n)
+int consoleread(struct file *f, char *dst, int n)
 {
   uint target;
   int c;
 
   target = n;
   acquire(&input.lock);
-  while(n > 0){
-    while(input.r == input.w){
-      if (proc->killed) {
+  while (n > 0)
+  {
+    while (input.r == input.w)
+    {
+      if (proc->killed)
+      {
         release(&input.lock);
         ilock(f->ip);
         return -1;
@@ -267,8 +310,10 @@ consoleread(struct file *f, char *dst, int n)
       sleep(&input.r, &input.lock);
     }
     c = input.buf[input.r++ % INPUT_BUF];
-    if (c == C('D')) {  // EOF
-      if (n < target) {
+    if (c == C('D'))
+    { // EOF
+      if (n < target)
+      {
         // Save ^D for next time, to make sure
         // caller gets a 0-byte result.
         input.r--;
@@ -285,28 +330,59 @@ consoleread(struct file *f, char *dst, int n)
   return target - n;
 }
 
-int
-consoleioctl(struct file *f, int param, int value)
+int consoleioctl(struct file *f, int param, int value)
 {
-  cprintf("Got unknown console ioctl request. %d = %d\n",param,value);
-  return -1;
+  // Param must be 0 for "this fd only"
+  // Or 1 for "global"
+
+  // Value must but be between 0 and 255
+  if ((param < 0 || param > 1) || (value < 0 || value > 255))
+  {
+    cprintf("Got unknown console ioctl request. %d = %d\n", param, value);
+    return -1;
+  }
+
+  if (param == 0)
+  {
+    f->dev_payload = (void *)value;
+    ioctl_mode = 0;
+  }
+
+  if (param == 1)
+  {
+    // change color globally
+    global_value = value;
+    ioctl_mode = 1;
+  }
+
+  return 1;
 }
 
-int
-consolewrite(struct file *f, char *buf, int n)
+int consolewrite(struct file *f, char *buf, int n)
 {
   int i;
 
   acquire(&cons.lock);
-  for(i = 0; i < n; i++)
-    consputc(buf[i] & 0xff);
+  for (i = 0; i < n; i++)
+    if (ioctl_mode == 1)
+    {
+      consputc_local(buf[i] & 0xff, global_value);
+    }
+    else if (f->dev_payload != 0 && ioctl_mode == 0)
+    {
+      consputc_local(buf[i] & 0xff, (int)f->dev_payload);
+    }
+    else
+    {
+      consputc(buf[i] & 0xff);
+    }
+
   release(&cons.lock);
 
   return n;
 }
 
-  void
-consoleinit(void)
+void consoleinit(void)
 {
   initlock(&cons.lock, "console");
   initlock(&input.lock, "input");
