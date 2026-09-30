@@ -5,8 +5,5 @@ target remote localhost:1234
 sym kernel
 # debugging mbr: b *0x7c00
 b _start
-b consoleinit
-b consolewrite
 c
 
-## Workaround is removed (2019): https://wiki.osdev.org/QEMU_and_GDB_in_long_mode

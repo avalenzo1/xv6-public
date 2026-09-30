@@ -5,6 +5,8 @@
 
 // Key addresses for address space layout (see kmap in vm.c for layout)
 #define KERNBASE 0xFFFF800000000000 // First kernel virtual address
+#define MMAPBASE 0x0000400000000000 // First mmap virtual address
+
 
 #define KERNLINK (KERNBASE+EXTMEM)  // Address where kernel is linked
 
@@ -22,4 +24,3 @@ static inline void *p2v(addr_t a) {
 
 #define V2P_WO(x) ((x) - KERNBASE)    // same as V2P, but without casts
 #define P2V_WO(x) ((x) + KERNBASE)    // same as P2V, but without casts
-

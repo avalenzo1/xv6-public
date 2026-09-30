@@ -26,12 +26,7 @@ void            bwrite(struct buf*);
 void            consoleinit(void);
 void            cprintf(char*, ...);
 void            consoleintr(int(*)(void));
-int             consoleioctl(struct file *,int,int);
 void            panic(char*) __attribute__((noreturn));
-
-// display.c
-void            displayinit(void);
-
 
 // exec.c
 int             exec(char*, char**);
@@ -39,7 +34,6 @@ int             exec(char*, char**);
 // file.c
 struct file*    filealloc(void);
 void            fileclose(struct file*);
-int             fileioctl(struct file*, int, int);
 struct file*    filedup(struct file*);
 void            fileinit(void);
 int             fileread(struct file*, char*, int n);
@@ -78,6 +72,7 @@ void            ioapicinit(void);
 // kalloc.c
 char*           kalloc(void);
 void            kfree(char*);
+int             kfreepagecount();
 void            kinit1(void*, void*);
 void            kinit2();
 
@@ -189,6 +184,8 @@ int             loaduvm(pml4e_t*, char*, struct inode*, uint, uint);
 pde_t*          copyuvm(pml4e_t*, uint);
 void            switchuvm(struct proc*);
 void            switchkvm(void);
+int             mappages(pde_t *pgdir, void *va, addr_t size, addr_t pa, int perm);
+int             handle_pagefault(addr_t va);
 int             copyout(pml4e_t*, addr_t, void*, uint64);
 void            clearpteu(pml4e_t *pgdir, char *uva);
 

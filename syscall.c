@@ -123,7 +123,7 @@ extern addr_t sys_unlink(void);
 extern addr_t sys_wait(void);
 extern addr_t sys_write(void);
 extern addr_t sys_uptime(void);
-extern addr_t sys_ioctl(void);
+extern addr_t sys_mmap(void);
 
 // PAGEBREAK!
 static addr_t (*syscalls[])(void) = {
@@ -149,7 +149,7 @@ static addr_t (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
-[SYS_ioctl]   sys_ioctl,
+[SYS_mmap]    sys_mmap,
 };
 
 void

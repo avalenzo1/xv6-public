@@ -1,5 +1,5 @@
 KERNOBJS = \
-	bio.o vga.o console.o display.o exec.o file.o fs.o ide.o ioapic.o kalloc.o kbd.o lapic.o \
+	bio.o console.o exec.o file.o fs.o ide.o ioapic.o kalloc.o kbd.o lapic.o \
   log.o main.o mp.o pipe.o proc.o sleeplock.o spinlock.o string.o swtch.o \
   syscall.o sysfile.o sysproc.o trapasm.o trap.o uart.o vectors.o vm.o \
 #
@@ -116,13 +116,15 @@ mkfs: mkfs.c fs.h
 # http://www.gnu.org/software/make/manual/html_node/Chained-Rules.html
 .PRECIOUS: %.o
 
+
 UPROGS= \
 	_cat _echo _forktest _grep _init _kill _ln _ls _mkdir \
-	_rm _sh _stressfs _usertests _wc _zombie _prettyprint _imshow\
+	_rm _sh _stressfs _usertests _wc _zombie \
+  _eager _lazy _bad \
 #
 
-fs.img: mkfs README cover.raw $(UPROGS)
-	./mkfs fs.img README cover.raw $(UPROGS)
+fs.img: mkfs README LARGE $(UPROGS)
+	./mkfs fs.img README LARGE $(UPROGS)
 
 clean:
 	rm -f *.tex *.dvi *.idx *.aux *.log *.ind *.ilg \
@@ -154,7 +156,7 @@ QEMUGDB = $(shell if $(QEMU) -help | grep -q '^-gdb'; \
 	then echo "-gdb tcp::$(GDBPORT)"; \
 	else echo "-s -p $(GDBPORT)"; fi)
 ifndef CPUS
-CPUS := 1
+CPUS := 2
 endif
 QEMUOPTS = -cpu qemu64,+rdtscp -nic none -hda xv6.img -hdb fs.img -smp sockets=$(CPUS) -m 512 $(QEMUEXTRA)
 
