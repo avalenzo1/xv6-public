@@ -74,6 +74,8 @@ found:
   p->context->rip = (addr_t)forkret;
 
   // TODO: hw4: initialize the mmap metadata for each new process
+  p->mmapcount = 0;
+  p->mmaptop = (char*) MMAPBASE;
 
   return p;
 }
