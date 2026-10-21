@@ -11,7 +11,7 @@
 int
 fetchint(addr_t addr, int *ip)
 {
-  if(addr < PGSIZE || addr >= proc->sz || addr+sizeof(int) > proc->sz)
+  if(addr >= proc->sz || addr+sizeof(int) > proc->sz)
     return -1;
   *ip = *(int*)(addr);
   return 0;
@@ -20,7 +20,7 @@ fetchint(addr_t addr, int *ip)
 int
 fetchaddr(addr_t addr, addr_t *ip)
 {
-  if(addr < PGSIZE || addr >= proc->sz || addr+sizeof(addr_t) > proc->sz)
+  if(addr >= proc->sz || addr+sizeof(addr_t) > proc->sz)
     return -1;
   *ip = *(addr_t*)(addr);
   return 0;
@@ -34,7 +34,7 @@ fetchstr(addr_t addr, char **pp)
 {
   char *s, *ep;
 
-  if(addr < PGSIZE || addr >= proc->sz)
+  if(addr >= proc->sz)
     return -1;
   *pp = (char*)addr;
   ep = (char*)proc->sz;
@@ -65,7 +65,7 @@ argint(int n, int *ip)
   return 0;
 }
 
-addr_t
+int
 argaddr(int n, addr_t *ip)
 {
   *ip = fetcharg(n);
@@ -75,7 +75,7 @@ argaddr(int n, addr_t *ip)
 // Fetch the nth word-sized system call argument as a pointer
 // to a block of memory of size bytes.  Check that the pointer
 // lies within the process address space.
-addr_t
+int
 argptr(int n, char **pp, int size)
 {
   addr_t i;
@@ -101,7 +101,6 @@ argstr(int n, char **pp)
   return fetchstr(addr, pp);
 }
 
-
 extern addr_t sys_chdir(void);
 extern addr_t sys_close(void);
 extern addr_t sys_dup(void);
@@ -123,11 +122,11 @@ extern addr_t sys_unlink(void);
 extern addr_t sys_wait(void);
 extern addr_t sys_write(void);
 extern addr_t sys_uptime(void);
-extern addr_t sys_ioctl(void);
+extern addr_t sys_dedup(void);
+extern addr_t sys_freepages(void);
 
 // PAGEBREAK!
 static addr_t (*syscalls[])(void) = {
-
 [SYS_fork]    sys_fork,
 [SYS_exit]    sys_exit,
 [SYS_wait]    sys_wait,
@@ -149,7 +148,8 @@ static addr_t (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
-[SYS_ioctl]   sys_ioctl,
+[SYS_dedup]   sys_dedup,
+[SYS_freepages] sys_freepages,
 };
 
 void

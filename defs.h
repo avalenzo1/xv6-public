@@ -26,12 +26,7 @@ void            bwrite(struct buf*);
 void            consoleinit(void);
 void            cprintf(char*, ...);
 void            consoleintr(int(*)(void));
-int             consoleioctl(struct file *,int,int);
 void            panic(char*) __attribute__((noreturn));
-
-// display.c
-void            displayinit(void);
-
 
 // exec.c
 int             exec(char*, char**);
@@ -39,7 +34,6 @@ int             exec(char*, char**);
 // file.c
 struct file*    filealloc(void);
 void            fileclose(struct file*);
-int             fileioctl(struct file*, int, int);
 struct file*    filedup(struct file*);
 void            fileinit(void);
 int             fileread(struct file*, char*, int n);
@@ -80,6 +74,12 @@ char*           kalloc(void);
 void            kfree(char*);
 void            kinit1(void*, void*);
 void            kinit2();
+void            krelease(char*);
+void            kretain(char*);
+int             krefcount(char*);
+int             kfreepagecount(void);
+void            update_checksum(addr_t);
+int             frames_are_identical(addr_t, addr_t);
 
 // kbd.c
 void            kbdintr(void);
@@ -157,9 +157,9 @@ char*           strncpy(char*, const char*, int);
 void            syscall(struct trapframe *);
 void            syscallinit(void);
 int             argint(int, int*);
-addr_t          argptr(int, char**, int);
+int             argptr(int, char**, int);
 int             argstr(int, char**);
-addr_t          argaddr(int, addr_t*);
+int             argaddr(int, addr_t*);
 int             fetchaddr(addr_t, addr_t*);
 int             fetchstr(addr_t, char**);
 int             fetchint(addr_t, int*);
@@ -179,18 +179,20 @@ void            uartputc(int);
 // vm.c
 void            seginit(void);
 void            kvmalloc(void);
-pml4e_t*        setupkvm(void);
-char*           uva2ka(pml4e_t*, char*);
-addr_t          allocuvm(pml4e_t*, uint64, uint64);
-addr_t          deallocuvm(pml4e_t*, uint64, uint64);
-void            freevm(pml4e_t*);
-void            inituvm(pml4e_t*, char*, uint);
-int             loaduvm(pml4e_t*, char*, struct inode*, uint, uint);
-pde_t*          copyuvm(pml4e_t*, uint);
+pde_t*          setupkvm(void);
+char*           uva2ka(pde_t*, char*);
+addr_t          allocuvm(pde_t*, uint64, uint64);
+addr_t          deallocuvm(pde_t*, uint64, uint64);
+void            freevm(pde_t*);
+void            inituvm(pde_t*, char*, uint);
+int             loaduvm(pde_t*, char*, struct inode*, uint, uint);
+pde_t*          copyuvm(pde_t*, uint);
 void            switchuvm(struct proc*);
 void            switchkvm(void);
-int             copyout(pml4e_t*, addr_t, void*, uint64);
-void            clearpteu(pml4e_t *pgdir, char *uva);
+int             copyout(pde_t*, addr_t, void*, uint64);
+void            clearpteu(pde_t *pgdir, char *uva);
+void            dedup(void *vstart, void *vend);
+int             copyonwrite(char* v);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

@@ -13,19 +13,11 @@ main(void)
   int pid, wpid;
 
   if(open("console", O_RDWR) < 0){
-    mknod("console", 1, 1); // the second argument is CONSOLE = 1
+    mknod("console", 1, 1);
     open("console", O_RDWR);
   }
-
   dup(0);  // stdout
-//  dup(0);  // stderr
-  open("console", O_RDWR); // stderr
-
-
-  if(open("display", O_RDWR) < 0){
-    mknod("display", 2, 1); // the second argument is DISPLAY = 2
-    open("display", O_RDWR);
-  }
+  dup(0);  // stderr
 
   for(;;){
     printf(1, "init: starting sh\n");

@@ -24,8 +24,6 @@ mkgate(uint *idt, uint n, addr_t kva, uint pl)
   idt[n+1] = (addr & 0xFFFF0000) | 0x8E00 | ((pl & 3) << 13);
   idt[n+2] = addr >> 32;
   idt[n+3] = 0;
-
-  // Heres the address we should jump to for some interrupt?
 }
 
 void idtinit(void)
@@ -55,7 +53,7 @@ trap(struct trapframe *tf)
       wakeup(&ticks);
       release(&tickslock);
     }
-    lapiceoi(); 
+    lapiceoi();
     break;
   case T_IRQ0 + IRQ_IDE:
     ideintr();
@@ -66,7 +64,7 @@ trap(struct trapframe *tf)
     break;
   case T_IRQ0 + IRQ_KBD:
     kbdintr();
-    lapiceoi(); // la peace
+    lapiceoi();
     break;
   case T_IRQ0 + IRQ_COM1:
     uartintr();
@@ -79,6 +77,10 @@ trap(struct trapframe *tf)
     lapiceoi();
     break;
 
+  case T_PGFLT: // at least a write: copyonwrite may copy the page
+    if ((tf->err & 2) && copyonwrite((char *)rcr2()))
+      break;
+    // else fall-through to default:
   //PAGEBREAK: 13
   default:
     if(proc == 0 || (tf->cs&3) == 0){

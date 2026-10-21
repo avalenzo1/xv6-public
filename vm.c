@@ -13,7 +13,7 @@ __thread struct cpu *cpu;         // %fs:(-16)
 __thread struct proc *proc;       // %fs:(-8)
 
 static pml4e_t *kpml4;
-static pdpe_t *kpdpt;
+static pde_t *kpdpt;
 
 void
 syscallinit(void)
@@ -99,10 +99,10 @@ seginit(void)
 // (directly addressable from end..P2V(PHYSTOP)).
 
 
-pml4e_t*
+pde_t*
 setupkvm(void)
 {
-  pml4e_t *pml4 = (pml4e_t*) kalloc();
+  pde_t *pml4 = (pde_t*) kalloc();
   memset(pml4, 0, PGSIZE);
   pml4[256] = v2p(kpdpt) | PTE_P | PTE_W;
   return pml4;
@@ -298,7 +298,7 @@ allocuvm(pde_t *pgdir, uint64 oldsz, uint64 newsz)
     if(mappages(pgdir, (char*)a, PGSIZE, V2P(mem), PTE_W|PTE_U) < 0){
       //cprintf("allocuvm out of memory (2)\n");
       deallocuvm(pgdir, newsz, oldsz);
-      kfree(mem);
+      krelease(mem);
       return 0;
     }
   }
@@ -324,9 +324,9 @@ deallocuvm(pde_t *pgdir, uint64 oldsz, uint64 newsz)
     if(pte && (*pte & PTE_P) != 0){
       pa = PTE_ADDR(*pte);
       if(pa == 0)
-        panic("kfree");
+        panic("dallocuvm");
       char *v = P2V(pa);
-      kfree(v);
+      krelease(v);
       *pte = 0;
     }
   }
@@ -336,7 +336,7 @@ deallocuvm(pde_t *pgdir, uint64 oldsz, uint64 newsz)
 // Free all the pages mapped by, and all the memory used for,
 // this page table
 void
-freevm(pml4e_t *pml4)
+freevm(pde_t *pml4)
 {
   uint i, j, k, l;
   pde_t *pdp, *pd, *pt;
@@ -364,29 +364,29 @@ freevm(pml4e_t *pml4)
                 if(pt[l] & PTE_P) {
                   char * v = P2V(PTE_ADDR(pt[l]));
 
-                  kfree((char*)v);
+                  krelease((char*)v);
                 }
               }
               //freeing every page table
-              kfree((char*)pt);
+              krelease((char*)pt);
             }
           }
           // freeing every page directory
-          kfree((char*)pd);
+          krelease((char*)pd);
         }
       }
       // freeing every page directory pointer table
-      kfree((char*)pdp);
+      krelease((char*)pdp);
     }
   }
   // freeing the pml4
-  kfree((char*)pml4);
+  krelease((char*)pml4);
 }
 
 // Clear PTE_U on a page. Used to create an inaccessible
 // page beneath the user stack.
 void
-clearpteu(pml4e_t *pgdir, char *uva)
+clearpteu(pde_t *pgdir, char *uva)
 {
   pte_t *pte;
 
@@ -399,7 +399,7 @@ clearpteu(pml4e_t *pgdir, char *uva)
 // Given a parent process's page table, create a copy
 // of it for a child.
 pde_t*
-copyuvm(pml4e_t *pgdir, uint sz)
+copyuvm(pde_t *pgdir, uint sz)
 {
   pde_t *d;
   pte_t *pte;
@@ -430,7 +430,7 @@ bad:
 
 // Map user virtual address to kernel address.
 char*
-uva2ka(pml4e_t *pgdir, char *uva)
+uva2ka(pde_t *pgdir, char *uva)
 {
   pte_t *pte;
 
@@ -446,7 +446,7 @@ uva2ka(pml4e_t *pgdir, char *uva)
 // Most useful when pgdir is not the current page table.
 // uva2ka ensures this only works for PTE_U pages.
 int
-copyout(pml4e_t *pgdir, addr_t va, void *p, uint64 len)
+copyout(pde_t *pgdir, addr_t va, void *p, uint64 len)
 {
   char *buf, *pa0;
   addr_t n, va0;
@@ -465,5 +465,22 @@ copyout(pml4e_t *pgdir, addr_t va, void *p, uint64 len)
     buf += n;
     va = va0 + PGSIZE;
   }
+  return 0;
+}
+
+/* deduplicate pages between process virtual address vstart and virtual address vend */
+void
+dedup(void *vstart, void *vend)
+{
+  cprintf("didn't dedup anything\n");
+  return;
+}
+
+/* maybe perform copy-on-write on the page that contains virtual address v. 
+   returns 1 if copy-on-write was performed, 0 otherwise. */
+int
+copyonwrite(char* v)
+{
+  cprintf("didn't copyonwrite anything\n");
   return 0;
 }

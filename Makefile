@@ -1,5 +1,5 @@
 KERNOBJS = \
-	bio.o vga.o console.o display.o exec.o file.o fs.o ide.o ioapic.o kalloc.o kbd.o lapic.o \
+	bio.o console.o exec.o file.o fs.o ide.o ioapic.o kalloc.o kbd.o lapic.o \
   log.o main.o mp.o pipe.o proc.o sleeplock.o spinlock.o string.o swtch.o \
   syscall.o sysfile.o sysproc.o trapasm.o trap.o uart.o vectors.o vm.o \
 #
@@ -8,7 +8,7 @@ UNAME_S := $(shell uname -s)
 UNAME_P := $(shell uname -p)
 ifeq ($(UNAME_S),Linux)
   ifeq ($(UNAME_P),aarch64)
-	TOOLPREFIX = x86_64-linux-gnu-
+	TOOLPREFIX = x86_64-linux-gnu
   else
   	# no prefix for Linux or WSL2
  	 TOOLPREFIX = 
@@ -118,17 +118,17 @@ mkfs: mkfs.c fs.h
 
 UPROGS= \
 	_cat _echo _forktest _grep _init _kill _ln _ls _mkdir \
-	_rm _sh _stressfs _usertests _wc _zombie _prettyprint _imshow\
-#
+	_rm _sh _stressfs _usertests _wc _zombie \
+	_dedup_writer _dedup_reader _cow_fork
 
-fs.img: mkfs README cover.raw $(UPROGS)
-	./mkfs fs.img README cover.raw $(UPROGS)
+fs.img: mkfs README $(UPROGS)
+	./mkfs fs.img README $(UPROGS)
 
 clean:
 	rm -f *.tex *.dvi *.idx *.aux *.log *.ind *.ilg \
 	*.o *.d *.asm *.sym vectors.S bootblock entryother \
 	initcode initcode.out kernel xv6.img fs.img kernelmemfs mkfs \
-	.gdbinit .depend \
+	.gdbinit \
 	_*
 
 # make a printout
@@ -154,9 +154,9 @@ QEMUGDB = $(shell if $(QEMU) -help | grep -q '^-gdb'; \
 	then echo "-gdb tcp::$(GDBPORT)"; \
 	else echo "-s -p $(GDBPORT)"; fi)
 ifndef CPUS
-CPUS := 1
+CPUS := 2
 endif
-QEMUOPTS = -cpu qemu64,+rdtscp -nic none -hda xv6.img -hdb fs.img -smp sockets=$(CPUS) -m 512 $(QEMUEXTRA)
+QEMUOPTS = -nic none -hda xv6.img -hdb fs.img -smp $(CPUS) -m 512 $(QEMUEXTRA)
 
 qemu: fs.img xv6.img
 	$(QEMU) -serial mon:stdio $(QEMUOPTS)
@@ -219,4 +219,4 @@ tar:
 	cp dist/* dist/.gdbinit.tmpl /tmp/xv6
 	(cd /tmp; tar cf - xv6) | gzip >xv6-rev10.tar.gz  # the next one will be 10 (9/17)
 
-.PHONY: dist-test dist clean
+.PHONY: dist-test dist
